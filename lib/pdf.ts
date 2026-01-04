@@ -1,4 +1,3 @@
-import { Site } from "@/lib/types"
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib"
 
 interface MeasurementData {
@@ -9,7 +8,7 @@ interface MeasurementData {
 }
 
 interface PDFData {
-  site: Site
+  siteName: string
   buildingNames: string[]
   bedroom: MeasurementData[]
   bathroom: MeasurementData[]
@@ -55,63 +54,36 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
     yPosition -= 30
 
     // Site info
-const leftX = margin
-const rightX = pageWidth - margin
-const labelColor = rgb(0.3, 0.3, 0.3)
+    page.drawText(`Site: ${data.siteName}`, {
+      x: margin,
+      y: yPosition,
+      size: 11,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    })
+    yPosition -= lineHeight
 
-// Row 1
-page.drawText(`Site: ${data.site.name}`, {
-  x: leftX,
-  y: yPosition,
-  size: 11,
-  font,
-  color: labelColor,
-})
+    const buildingText =
+      data.buildingNames.length === 1
+        ? `Building: ${data.buildingNames[0]}`
+        : `Buildings: All (${data.buildingNames.length})`
+    page.drawText(buildingText, {
+      x: margin,
+      y: yPosition,
+      size: 11,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    })
+    yPosition -= lineHeight
 
-page.drawText(`SPOC Name: ${data.site.spocName ?? ""}`, {
-  x: rightX - font.widthOfTextAtSize(`SPOC Name: ${data.site.spocName ?? ""}`, 11) - 7.5,
-  y: yPosition,
-  size: 11,
-  font,
-  color: labelColor,
-})
-
-yPosition -= lineHeight
-
-// Row 2
-const buildingText =
-  data.buildingNames.length === 1
-    ? `Building: ${data.buildingNames[0]}`
-    : `Buildings: All (${data.buildingNames.length})`
-
-page.drawText(buildingText, {
-  x: leftX,
-  y: yPosition,
-  size: 11,
-  font,
-  color: labelColor,
-})
-
-page.drawText(`SPOC Mobile: ${data.site.spocNumber ?? ""}`, {
-  x: rightX - font.widthOfTextAtSize(`SPOC Mobile: ${data.site.spocNumber ?? ""}`, 11),
-  y: yPosition,
-  size: 11,
-  font,
-  color: labelColor,
-})
-
-yPosition -= lineHeight
-
-// Row 3 (full-width)
-page.drawText(`Generated: ${new Date().toLocaleDateString()}`, {
-  x: leftX,
-  y: yPosition,
-  size: 11,
-  font,
-  color: labelColor,
-})
-
-yPosition -= 35
+    page.drawText(`Generated: ${new Date().toLocaleDateString()}`, {
+      x: margin,
+      y: yPosition,
+      size: 11,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    })
+    yPosition -= 35
 
     // Section title
     page.drawText(section.title, {
