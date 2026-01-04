@@ -3,6 +3,8 @@ export type DoorType = "BEDROOM" | "BATHROOM" | "MAIN_ENTRY"
 export interface Site {
   _id: string
   name: string
+  spocName?: string
+  spocNumber?: string
   createdAt: string
   updatedAt: string
 }

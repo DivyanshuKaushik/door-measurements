@@ -15,18 +15,18 @@ export default function Home() {
   const [siteId, setSiteId] = useState<string | null>(null)
   const [buildingId, setBuildingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((registration) => {
-          console.log("Service Worker registered:", registration)
-        })
-        .catch((error) => {
-          console.log("Service Worker registration failed:", error)
-        })
-    }
-  }, [])
+  // useEffect(() => {
+  //   if ("serviceWorker" in navigator) {
+  //     navigator.serviceWorker
+  //       .register("/sw.js")
+  //       .then((registration) => {
+  //         console.log("Service Worker registered:", registration)
+  //       })
+  //       .catch((error) => {
+  //         console.log("Service Worker registration failed:", error)
+  //       })
+  //   }
+  // }, [])
 
   const handleSiteSelect = (id: string) => {
     setSiteId(id)
@@ -97,7 +97,7 @@ export default function Home() {
             </div>
             <div>
               <h3 className="text-xl font-semibold text-foreground mb-2">Welcome !!!</h3>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Sarang Enterprises & Kailash Wood Arts</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Kailash Wood Arts</h2>
               <p className="text-muted-foreground">Collect accurate door measurements</p>
             </div>
             <div className="flex flex-col gap-3 max-w-xs mx-auto">

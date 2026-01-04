@@ -17,17 +17,48 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name } = body
+    const { name, spocName, spocNumber } = body
 
     if (!name || name.trim() === "") {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
     await connectDB()
-    const site = await Site.create({ name: name.trim() })
+    const site = await Site.create({
+      name: name.trim(),
+      spocName: spocName?.trim(),
+      spocNumber: spocNumber?.trim(),
+    })
     return NextResponse.json(site, { status: 201 })
   } catch (error) {
     console.error("Error creating site:", error)
     return NextResponse.json({ error: "Failed to create site" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json()
+    const { siteId, spocName, spocNumber } = body
+
+    if (!siteId) {
+      return NextResponse.json({ error: "Site ID is required" }, { status: 400 })
+    }
+
+    await connectDB()
+    const site = await Site.findByIdAndUpdate(
+      siteId,
+      { spocName: spocName?.trim(), spocNumber: spocNumber?.trim() },
+      { new: true },
+    )
+
+    if (!site) {
+      return NextResponse.json({ error: "Site not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(site)
+  } catch (error) {
+    console.error("Error updating site:", error)
+    return NextResponse.json({ error: "Failed to update site" }, { status: 500 })
   }
 }

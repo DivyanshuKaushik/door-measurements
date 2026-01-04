@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     mainEntry.sort(sortFn)
 
     const pdfBytes = await generatePDF({
-      siteName: site.name,
+      site: site,
       buildingNames: buildings.map((b) => b.name),
       bedroom,
       bathroom,

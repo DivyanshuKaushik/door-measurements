@@ -1,4 +1,4 @@
-const CACHE_NAME = "door-measurement-v2"
+const CACHE_NAME = "door-measurement-v3"
 const urlsToCache = ["/", "/manifest.json", "/icon-192x192.jpg", "/icon-512x512.jpg"]
 
 self.addEventListener("install", (event) => {
@@ -12,6 +12,23 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url)
+
+  if (event.request.mode === "navigate" || event.request.headers.get("accept")?.includes("text/html")) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache)
+          })
+          return response
+        })
+        .catch(() => {
+          return caches.match(event.request)
+        }),
+    )
+    return
+  }
 
   // Network-first for API calls
   if (url.pathname.startsWith("/api/")) {
