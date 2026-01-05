@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { FileDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import type { Site, Building } from "@/lib/types"
 
 export function ReportStep() {
@@ -16,6 +17,7 @@ export function ReportStep() {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [reportType, setReportType] = useState<"default" | "accurate">("default")
 
   useEffect(() => {
     fetchSites()
@@ -68,6 +70,7 @@ export function ReportStep() {
         body: JSON.stringify({
           siteId: selectedSite,
           buildingId: selectedBuilding || "ALL",
+          isAccurate: reportType === "accurate",
         }),
       })
 
@@ -161,6 +164,37 @@ export function ReportStep() {
           </div>
         </Card>
       )}
+
+       {/* Report Type Selection */}
+      <Card className="p-4 space-y-4">
+        <Label>Report Type</Label>
+        <RadioGroup
+          value={reportType}
+          onValueChange={(value) => setReportType(value as "default" | "accurate")}
+          className="grid grid-cols-2 gap-4"
+        >
+          <div>
+            <RadioGroupItem value="default" id="default" className="peer sr-only" />
+            <Label
+              htmlFor="default"
+              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+            >
+              <span className="text-sm font-semibold">Default</span>
+              <span className="text-xs text-muted-foreground mt-1">As recorded</span>
+            </Label>
+          </div>
+          <div>
+            <RadioGroupItem value="accurate" id="accurate" className="peer sr-only" />
+            <Label
+              htmlFor="accurate"
+              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+            >
+              <span className="text-sm font-semibold">Accurate</span>
+              <span className="text-xs text-muted-foreground mt-1">Calculated</span>
+            </Label>
+          </div>
+        </RadioGroup>
+      </Card>
 
       {/* Generate Button */}
       <Button onClick={handleGenerateReport} disabled={!selectedSite || generating} className="w-full" size="lg">

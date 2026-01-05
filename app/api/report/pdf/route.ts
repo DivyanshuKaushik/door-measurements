@@ -9,7 +9,7 @@ import { generatePDF } from "@/lib/pdf"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { siteId, buildingId } = body
+    const { siteId, buildingId, isAccurate } = body
 
     if (!siteId) {
       return NextResponse.json({ error: "Site ID is required" }, { status: 400 })
@@ -61,11 +61,14 @@ export async function POST(request: Request) {
       const flat = m.flatId as { _id: string; flatNo: string }
       const buildingName = flatToBuildingMap.get(flat._id.toString())
 
+      const lengthInches = isAccurate ? Math.max(0, m.lengthInches - 1) : m.lengthInches
+      const breadthInches = isAccurate ? Math.max(0, m.breadthInches - 2) : m.breadthInches
+
       const data = {
         flatNo: flat.flatNo,
         buildingName: buildings.length > 1 ? buildingName : undefined,
-        lengthInches: m.lengthInches,
-        breadthInches: m.breadthInches,
+        lengthInches,
+        breadthInches,
       }
 
       if (m.doorType === "BEDROOM") bedroom.push(data)
@@ -89,6 +92,7 @@ export async function POST(request: Request) {
     const pdfBytes = await generatePDF({
       siteName: site.name,
       buildingNames: buildings.map((b) => b.name),
+      isAccurate: !!isAccurate,
       bedroom,
       bathroom,
       mainEntry,

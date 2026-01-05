@@ -10,6 +10,7 @@ interface MeasurementData {
 interface PDFData {
   siteName: string
   buildingNames: string[]
+  isAccurate?: boolean
   bedroom: MeasurementData[]
   bathroom: MeasurementData[]
   mainEntry: MeasurementData[]
@@ -25,6 +26,7 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
   const margin = 40
   const lineHeight = 16
   const columnGap = 15
+  const rowHeight = 20 // increased for better padding
 
   const totalBedroomCount = data.bedroom.length
   const totalBathroomCount = data.bathroom.length
@@ -45,35 +47,82 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
 
   // Helper function to draw table header in a column
   const drawTableHeader = (page: any, yPos: number, columnX: number) => {
-    const col1 = columnX
+    const colPadding = 5
+    const col1 = columnX + colPadding
     const col2 = showBuildingColumn ? columnX + 50 : columnX + 65
     const col3 = showBuildingColumn ? columnX + 115 : columnX + 135
     const col4 = showBuildingColumn ? columnX + 190 : columnX + 205
 
-    if (showBuildingColumn) {
-      page.drawText("Building", { x: col1, y: yPos, size: 8, font: boldFont })
-      page.drawText("Flat", { x: col2, y: yPos, size: 8, font: boldFont })
-    } else {
-      page.drawText("Flat No", { x: col1, y: yPos, size: 8, font: boldFont })
-    }
-    page.drawText("Length (in)", { x: col3, y: yPos, size: 8, font: boldFont })
-    page.drawText("Breadth (in)", { x: col4, y: yPos, size: 8, font: boldFont })
-
-    const lineY = yPos - 3
-    page.drawLine({
-      start: { x: columnX, y: lineY },
-      end: { x: columnX + columnWidth, y: lineY },
-      thickness: 0.5,
-      color: rgb(0.7, 0.7, 0.7),
+    // Draw header background
+    page.drawRectangle({
+      x: columnX,
+      y: yPos - rowHeight + 5,
+      width: columnWidth,
+      height: rowHeight,
+      color: rgb(0.95, 0.95, 0.95),
     })
 
-    return lineY - 15
+    // Draw header border
+    page.drawRectangle({
+      x: columnX,
+      y: yPos - rowHeight + 5,
+      width: columnWidth,
+      height: rowHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    })
+
+    const textY = yPos - 10
+    if (showBuildingColumn) {
+      page.drawText("Building", { x: col1, y: textY, size: 8, font: boldFont })
+      page.drawText("Flat", { x: col2, y: textY, size: 8, font: boldFont })
+    } else {
+      page.drawText("Flat No", { x: col1, y: textY, size: 8, font: boldFont })
+    }
+    page.drawText("Height (in)", { x: col3, y: textY, size: 8, font: boldFont })
+    page.drawText("Width (in)", { x: col4, y: textY, size: 8, font: boldFont })
+
+    return yPos - rowHeight
+  }
+
+  const drawRow = (page: any, yPos: number, columnX: number, data: MeasurementData) => {
+    const colPadding = 5
+    const col1 = columnX + colPadding
+    const col2 = showBuildingColumn ? columnX + 50 : columnX + 65
+    const col3 = showBuildingColumn ? columnX + 115 : columnX + 135
+    const col4 = showBuildingColumn ? columnX + 190 : columnX + 205
+
+    // Draw cell border
+    page.drawRectangle({
+      x: columnX,
+      y: yPos,
+      width: columnWidth,
+      height: rowHeight,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 0.5,
+    })
+
+    const textY = yPos + 6
+    if (showBuildingColumn) {
+      page.drawText(data.buildingName || "", { x: col1, y: textY, size: 8, font })
+      page.drawText(data.flatNo, { x: col2, y: textY, size: 8, font })
+      page.drawText(data.lengthInches.toFixed(1), { x: col3, y: textY, size: 8, font })
+      page.drawText(data.breadthInches.toFixed(1), { x: col4, y: textY, size: 8, font })
+    } else {
+      page.drawText(data.flatNo, { x: col1, y: textY, size: 8, font })
+      page.drawText(data.lengthInches.toFixed(1), { x: col3, y: textY, size: 8, font })
+      page.drawText(data.breadthInches.toFixed(1), { x: col4, y: textY, size: 8, font })
+    }
   }
 
   for (const section of doorSections) {
     let currentPage = pdfDoc.addPage([pageWidth, pageHeight])
     let yPosition = pageHeight - margin
     let pageNumber = 1
+    let currentColumn: "left" | "right" = "left"
+    let leftHeaderDrawn = false
+    let rightHeaderDrawn = false
+    let pageStartY = yPosition
 
     // Header
     currentPage.drawText("Door Measurement Report", {
@@ -85,6 +134,15 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
     })
 
     yPosition -= 25
+
+    currentPage.drawText(`Report Type: ${data.isAccurate ? 'Accurate Calculated)' : "Default"}`, {
+      x: margin,
+      y: yPosition,
+      size: 9,
+      font: boldFont,
+      color: rgb(0.3, 0.3, 0.3),
+    })
+    yPosition -= 15
 
     // Site info
     currentPage.drawText(`Site: ${data.siteName}`, {
@@ -130,9 +188,6 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
 
     let leftYPosition = yPosition
     let rightYPosition = yPosition
-    let currentColumn: "left" | "right" = "left"
-    let leftHeaderDrawn = false
-    let rightHeaderDrawn = false
 
     if (section.data.length === 0) {
       currentPage.drawText("No measurements recorded", {
@@ -165,36 +220,21 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
             // Add continuation header
             currentPage.drawText(`${section.title} (continued)`, {
               x: margin,
-              y: leftYPosition,
+              y: leftYPosition - 10,
               size: 14,
               font: boldFont,
               color: rgb(0.15, 0.15, 0.15),
             })
-            leftYPosition -= 25
+            leftYPosition -= 35
             rightYPosition = leftYPosition
+            pageStartY = leftYPosition
 
             leftYPosition = drawTableHeader(currentPage, leftYPosition, leftColumnX)
             leftHeaderDrawn = true
           }
 
-          // Draw in left column
-          const col1 = leftColumnX
-          const col2 = showBuildingColumn ? leftColumnX + 50 : leftColumnX + 65
-          const col3 = showBuildingColumn ? leftColumnX + 115 : leftColumnX + 135
-          const col4 = showBuildingColumn ? leftColumnX + 190 : leftColumnX + 205
-
-          if (showBuildingColumn) {
-            currentPage.drawText(measurement.buildingName || "", { x: col1, y: leftYPosition, size: 8, font })
-            currentPage.drawText(measurement.flatNo, { x: col2, y: leftYPosition, size: 8, font })
-            currentPage.drawText(measurement.lengthInches.toFixed(1), { x: col3, y: leftYPosition, size: 8, font })
-            currentPage.drawText(measurement.breadthInches.toFixed(1), { x: col4, y: leftYPosition, size: 8, font })
-          } else {
-            currentPage.drawText(measurement.flatNo, { x: col1, y: leftYPosition, size: 8, font })
-            currentPage.drawText(measurement.lengthInches.toFixed(1), { x: col3, y: leftYPosition, size: 8, font })
-            currentPage.drawText(measurement.breadthInches.toFixed(1), { x: col4, y: leftYPosition, size: 8, font })
-          }
-
-          leftYPosition -= lineHeight
+          drawRow(currentPage, leftYPosition - rowHeight, leftColumnX, measurement)
+          leftYPosition -= rowHeight
           currentColumn = "right"
         } else {
           if (!rightHeaderDrawn) {
@@ -214,36 +254,21 @@ export async function generatePDF(data: PDFData): Promise<Uint8Array> {
             // Add continuation header
             currentPage.drawText(`${section.title} (continued)`, {
               x: margin,
-              y: rightYPosition,
+              y: rightYPosition - 10,
               size: 14,
               font: boldFont,
               color: rgb(0.15, 0.15, 0.15),
             })
-            rightYPosition -= 25
+            rightYPosition -= 35
             leftYPosition = rightYPosition
+            pageStartY = rightYPosition
 
             rightYPosition = drawTableHeader(currentPage, rightYPosition, rightColumnX)
             rightHeaderDrawn = true
           }
 
-          // Draw in right column
-          const col1 = rightColumnX
-          const col2 = showBuildingColumn ? rightColumnX + 50 : rightColumnX + 65
-          const col3 = showBuildingColumn ? rightColumnX + 115 : rightColumnX + 135
-          const col4 = showBuildingColumn ? rightColumnX + 190 : rightColumnX + 205
-
-          if (showBuildingColumn) {
-            currentPage.drawText(measurement.buildingName || "", { x: col1, y: rightYPosition, size: 8, font })
-            currentPage.drawText(measurement.flatNo, { x: col2, y: rightYPosition, size: 8, font })
-            currentPage.drawText(measurement.lengthInches.toFixed(1), { x: col3, y: rightYPosition, size: 8, font })
-            currentPage.drawText(measurement.breadthInches.toFixed(1), { x: col4, y: rightYPosition, size: 8, font })
-          } else {
-            currentPage.drawText(measurement.flatNo, { x: col1, y: rightYPosition, size: 8, font })
-            currentPage.drawText(measurement.lengthInches.toFixed(1), { x: col3, y: rightYPosition, size: 8, font })
-            currentPage.drawText(measurement.breadthInches.toFixed(1), { x: col4, y: rightYPosition, size: 8, font })
-          }
-
-          rightYPosition -= lineHeight
+          drawRow(currentPage, rightYPosition - rowHeight, rightColumnX, measurement)
+          rightYPosition -= rowHeight
           currentColumn = "left"
         }
       }

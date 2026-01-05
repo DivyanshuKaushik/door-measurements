@@ -196,23 +196,23 @@ export function FlatMeasurementStep({ buildingId }: FlatMeasurementStepProps) {
           <Label>Door Measurements</Label>
           <div className="grid gap-4">
             <div>
-              <Label htmlFor="length">Length (inches)</Label>
+              <Label htmlFor="length">Height (inches)</Label>
               <Input
                 id="length"
                 type="number"
                 value={lengthInches}
                 onChange={(e) => setLengthInches(e.target.value)}
-                placeholder="Enter length"
+                placeholder="Enter height"
               />
             </div>
             <div>
-              <Label htmlFor="breadth">Breadth (inches)</Label>
+              <Label htmlFor="breadth">Width (inches)</Label>
               <Input
                 id="breadth"
                 type="number"
                 value={breadthInches}
                 onChange={(e) => setBreadthInches(e.target.value)}
-                placeholder="Enter breadth"
+                placeholder="Enter width"
               />
             </div>
           </div>
