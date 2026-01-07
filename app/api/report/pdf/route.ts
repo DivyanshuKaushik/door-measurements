@@ -6,6 +6,13 @@ import { Building } from "@/lib/models/Building"
 import { Site } from "@/lib/models/Site"
 import { generatePDF } from "@/lib/pdf"
 
+function getAccurateMeasurement(num:number,toMinus:number){
+  const decimal = parseInt(num.toString().split(".")?.[1] || "0");
+  const accuracy = decimal - toMinus;
+  if(accuracy < 0 ) return (Math.floor(num)-1) + ((8-Math.abs(accuracy))/10)
+  return Math.floor(num) + (accuracy/10)
+ }
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -61,8 +68,8 @@ export async function POST(request: Request) {
       const flat = m.flatId as { _id: string; flatNo: string }
       const buildingName = flatToBuildingMap.get(flat._id.toString())
 
-      const lengthInches = isAccurate ? Math.max(0, m.lengthInches - 1) : m.lengthInches
-      const breadthInches = isAccurate ? Math.max(0, m.breadthInches - 2) : m.breadthInches
+      const lengthInches = isAccurate ? getAccurateMeasurement(m.lengthInches, 4) : m.lengthInches
+      const breadthInches = isAccurate ? getAccurateMeasurement(m.breadthInches, 2) : m.breadthInches
 
       const data = {
         flatNo: flat.flatNo,

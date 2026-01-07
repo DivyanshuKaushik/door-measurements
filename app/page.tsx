@@ -7,6 +7,7 @@ import { SiteStep } from "@/components/site-step"
 import { BuildingStep } from "@/components/building-step"
 import { FlatMeasurementStep } from "@/components/flat-measurement-step"
 import { ReportStep } from "@/components/report-step"
+import { Breadcrumb } from "@/components/breadcrumb"
 
 type Step = "welcome" | "site" | "building" | "flat-measurement" | "report"
 
@@ -14,6 +15,9 @@ export default function Home() {
   const [step, setStep] = useState<Step>("welcome")
   const [siteId, setSiteId] = useState<string | null>(null)
   const [buildingId, setBuildingId] = useState<string | null>(null)
+  const [siteName, setSiteName] = useState<string>("")
+  const [buildingName, setBuildingName] = useState<string>("")
+  const [flatName, setFlatName] = useState<string>("")
 
   // useEffect(() => {
   //   if ("serviceWorker" in navigator) {
@@ -28,13 +32,54 @@ export default function Home() {
   //   }
   // }, [])
 
+  useEffect(() => {
+    const handlePopState = () => {
+      // Prevent default browser behavior and navigate using app logic
+      window.history.pushState(null, "", window.location.href)
+      handleBack()
+    }
+
+    window.history.pushState(null, "", window.location.href)
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [step])
+
   const handleSiteSelect = (id: string) => {
+    if (!id) {
+      setStep("site")
+      setSiteId(null)
+      setBuildingId(null)
+      setSiteName("")
+      setBuildingName("")
+      setFlatName("")
+      return
+    }
     setSiteId(id)
+    // Fetch site name for breadcrumb
+    fetch(`/api/site?id=${id}`)
+      .then((res) => res.json())
+      .then((data) => setSiteName(data.name || ""))
+      .catch(() => setSiteName(""))
     setStep("building")
   }
 
   const handleBuildingSelect = (id: string) => {
+    if (!id) {
+      setBuildingId(null)
+      setBuildingName("")
+      setFlatName("")
+      setStep("building")
+      return
+    }
     setBuildingId(id)
+    // Fetch building name for breadcrumb
+    fetch(`/api/building?id=${id}`)
+      .then((res) => res.json())
+      .then((data) => setBuildingName(data.name || ""))
+      .catch(() => setBuildingName(""))
     setStep("flat-measurement")
   }
 
@@ -89,6 +134,15 @@ export default function Home() {
         </div>
       </header>
 
+      <Breadcrumb
+        siteName={siteName}
+        siteId={siteId}
+        buildingName={buildingName}
+        buildingId={buildingId}
+        flatName={flatName}
+        currentStep={step}
+      />
+
       <main className="mx-auto max-w-4xl px-4 py-6">
         {step === "welcome" && (
           <div className="text-center space-y-6">
@@ -113,7 +167,7 @@ export default function Home() {
 
         {step === "site" && <SiteStep onSelect={handleSiteSelect} />}
         {step === "building" && siteId && <BuildingStep siteId={siteId} onSelect={handleBuildingSelect} />}
-        {step === "flat-measurement" && buildingId && <FlatMeasurementStep buildingId={buildingId} />}
+        {step === "flat-measurement" && buildingId && <FlatMeasurementStep buildingId={buildingId} setFlatName={setFlatName} />}
         {step === "report" && <ReportStep />}
       </main>
     </div>

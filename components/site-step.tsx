@@ -9,6 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Site } from "@/lib/types";
 
 interface SiteStepProps {
@@ -99,6 +109,31 @@ export function SiteStep({ onSelect }: SiteStepProps) {
         }
     };
 
+    const handleDeleteSite = async (siteId: string, siteName: string) => {
+        try {
+            const response = await fetch(`/api/site?siteId=${siteId}`, {
+                method: "DELETE",
+            });
+            if (response.ok) {
+                setSites(sites.filter((s) => s._id !== siteId));
+                onSelect("");
+                toast({
+                    title: "Success",
+                    description: `Site "${siteName}" and all related data have been deleted.`,
+                });
+            } else {
+                throw new Error("Failed to delete site");
+            }
+        } catch (error) {
+            console.error("Error deleting site:", error);
+            toast({
+                title: "Error",
+                description: "Failed to delete site",
+                variant: "destructive",
+            });
+        }
+    };
+
     const startEditSpoc = (site: Site, e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingSiteId(site._id);
@@ -119,14 +154,65 @@ export function SiteStep({ onSelect }: SiteStepProps) {
 
     return (
         <div className="space-y-4">
-            <div>
-                <h2 className="text-xl font-semibold text-foreground mb-1">
-                    Select Site
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    Choose an existing site or add a new one
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-semibold text-foreground mb-1">
+                        Select Site
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Choose an existing site or add a new one
+                    </p>
+                </div>
+                {!isAdding && (
+                    <Button size="sm" onClick={() => setIsAdding(true)}>
+                        Add Site
+                    </Button>
+                )}
             </div>
+
+            {isAdding && (
+                <Card className="p-4 space-y-3 border-primary bg-primary/5">
+                    <div>
+                        <Label htmlFor="siteName">Site Name</Label>
+                        <Input
+                            id="siteName"
+                            value={newSiteName}
+                            onChange={(e) => setNewSiteName(e.target.value)}
+                            placeholder="Enter site name"
+                            autoFocus
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="spocName">Supervisor Name</Label>
+                        <Input
+                            id="spocName"
+                            value={newSpocName}
+                            onChange={(e) => setNewSpocName(e.target.value)}
+                            placeholder="Enter Supervisor name (optional)"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="spocNumber">Supervisor Number</Label>
+                        <Input
+                            id="spocNumber"
+                            value={newSpocNumber}
+                            onChange={(e) => setNewSpocNumber(e.target.value)}
+                            placeholder="Enter Supervisor number (optional)"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <Button onClick={handleAddSite} className="flex-1">
+                            Add Site
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsAdding(false)}
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </Card>
+            )}
 
             {sites.length > 0 && (
                 <div className="space-y-2">
@@ -187,7 +273,6 @@ export function SiteStep({ onSelect }: SiteStepProps) {
                                                 }
                                                 placeholder="Enter Supervisor number"
                                                 className="mt-1"
-                                                type="number"
                                             />
                                         </div>
                                     </div>
@@ -211,24 +296,69 @@ export function SiteStep({ onSelect }: SiteStepProps) {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="">
-                                    <div className="flex items-center justify-between">
+                                <div className="grid grid-cols-[1fr,1fr,auto,auto] gap-3 items-center">
+                                    <div className="flex justify-between">
                                         <div className="font-medium text-foreground">
                                             {site.name}
                                         </div>
-
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) =>
-                                                startEditSpoc(site, e)
-                                            }
-                                            className="h-8 w-8 p-0"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
+                                        <div className="">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={(e) =>
+                                                    startEditSpoc(site, e)
+                                                }
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
+                                                        }
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogTitle>
+                                                        Delete Site
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to
+                                                        delete "{site.name}"?
+                                                        This will also delete
+                                                        all buildings, flats,
+                                                        and measurements
+                                                        associated with this
+                                                        site.
+                                                    </AlertDialogDescription>
+                                                    <div className="flex gap-2">
+                                                        <AlertDialogCancel>
+                                                            Cancel
+                                                        </AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() =>
+                                                                handleDeleteSite(
+                                                                    site._id,
+                                                                    site.name
+                                                                )
+                                                            }
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                        >
+                                                            Delete
+                                                        </AlertDialogAction>
+                                                    </div>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
+                                   <div className="text-sm text-muted-foreground">
                                         {site.spocName || site.spocNumber ? (
                                             <div>
                                               <h2 className="font-medium text-black">Supervisor Details</h2>
@@ -258,59 +388,6 @@ export function SiteStep({ onSelect }: SiteStepProps) {
                         </Card>
                     ))}
                 </div>
-            )}
-
-            {!isAdding ? (
-                <Button
-                    variant="outline"
-                    className="w-full bg-transparent"
-                    onClick={() => setIsAdding(true)}
-                >
-                    Add New Site
-                </Button>
-            ) : (
-                <Card className="p-4 space-y-3">
-                    <div>
-                        <Label htmlFor="siteName">Site Name</Label>
-                        <Input
-                            id="siteName"
-                            value={newSiteName}
-                            onChange={(e) => setNewSiteName(e.target.value)}
-                            placeholder="Enter site name"
-                        />
-                    </div>
-                    <div>
-                        <Label htmlFor="spocName">Supervisor Name</Label>
-                        <Input
-                            id="spocName"
-                            value={newSpocName}
-                            onChange={(e) => setNewSpocName(e.target.value)}
-                            placeholder="Enter Supervisor name (optional)"
-                        />
-                    </div>
-                    <div>
-                        <Label htmlFor="spocNumber">Supervisor Number</Label>
-                        <Input
-                            id="spocNumber"
-                            value={newSpocNumber}
-                            onChange={(e) => setNewSpocNumber(e.target.value)}
-                            placeholder="Enter Supervisor number (optional)"
-                            type="number"
-                            min={10}
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <Button onClick={handleAddSite} className="flex-1">
-                            Add Site
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsAdding(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </Card>
             )}
         </div>
     );
